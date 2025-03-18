@@ -1,0 +1,3 @@
+import qrcode
+qr = qrcode.make("https://santhosh2025.neocities.org/profile/")
+qr.show()
