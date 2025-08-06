@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Online Video Downloader</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #111;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+    h1 {
+      color: #00f7ff;
+    }
+    input, button {
+      padding: 10px;
+      margin: 10px;
+      width: 90%;
+      max-width: 500px;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: none;
+    }
+    input {
+      background: #222;
+      color: #fff;
+    }
+    button {
+      background: #00f7ff;
+      cursor: pointer;
+      color: #000;
+    }
+    video {
+      margin-top: 20px;
+      width: 100%;
+      max-width: 600px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎬 Online Video Downloader</h1>
+
+  <input type="text" id="videoUrl" placeholder="Paste direct video URL (.mp4, .webm, etc.)" />
+
+  <button onclick="previewVideo()">▶ Preview</button>
+  <button onclick="downloadVideo()">⬇ Download</button>
+
+  <video id="videoPlayer" controls style="display:none;"></video>
+
+  <script>
+    function previewVideo() {
+      const url = document.getElementById("videoUrl").value;
+      const video = document.getElementById("videoPlayer");
+
+      if (!url) {
+        alert("Please enter a video URL");
+        return;
+      }
+
+      video.src = url;
+      video.style.display = "block";
+      video.load();
+      video.play();
+    }
+
+    function downloadVideo() {
+      const url = document.getElementById("videoUrl").value;
+      if (!url) {
+        alert("Please enter a video URL");
+        return;
+      }
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "video";
+      a.target = "_blank";
+      a.click();
+    }
+  </script>
+
+</body>
+</html>
