@@ -1,0 +1,11 @@
+SANTHOSH:\Python\Typing>python app.py
+Auto Typer is running.
+Press 'f8' to start typing.
+Press 'esc' to stop at any time.
+Place your cursor in the desired text box.
+'input.txt' not found. Creating it with default content...
+'input.txt' created. Please edit it and then press f8 when you are ready.
+Starting typing... (Press ESC to stop)
+Typing stopped. (Press F8 to resume)
+
+
