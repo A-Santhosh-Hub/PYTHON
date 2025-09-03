@@ -1,0 +1,76 @@
+Python Auto Typer Tool
+Developed by SanStudio
+
+This script automates typing text from a .txt file into any active text field on your computer. It simulates human typing and includes several features for customization.
+
+Features
+File-Based Input: Reads text directly from an input.txt file.
+
+Dynamic Reloading: Automatically reloads the input.txt file if its content is changed, without needing to restart the script.
+
+Hotkey Control:
+
+Press F8 to start or resume typing.
+
+Press ESC to immediately stop or pause typing.
+
+Adjustable Typing Speed:
+
+Set a fixed delay between keystrokes.
+
+Enable a random delay to simulate natural, human-like typing.
+
+Configurable Modes:
+
+Loop Mode: Type the entire text file repeatedly.
+
+Skip Empty Lines: Choose whether to type out blank lines or ignore them.
+
+Paste Mode: Instantly paste each line instead of typing character by character (Note: This is very fast and may be detected by some systems).
+
+Prerequisites
+Before you begin, ensure you have Python installed on your system. You will also need to install two Python packages: pyautogui and keyboard.
+
+You can install them using pip:
+
+pip install pyautogui keyboard
+
+Note: On macOS, you may need to grant accessibility permissions to your terminal or IDE. On Linux, you might need to install scrot and python3-tk (sudo apt-get install scrot python3-tk).
+
+How to Run the Script
+Save the Files: Place both autotyper.py and input.txt in the same directory.
+
+Customize input.txt: Open input.txt with any text editor and replace the sample content with the text you want to be typed. Save the file.
+
+Configure the Script (Optional): Open autotyper.py. At the top of the file, you can change the configuration variables to match your needs (e.g., change hotkeys, adjust typing speed, enable looping).
+
+Run from Terminal:
+
+Open a terminal or command prompt.
+
+Navigate to the directory where you saved the files.
+
+Execute the script using the following command:
+
+python autotyper.py
+
+Start Typing:
+
+The terminal will show a message indicating that the script is running.
+
+Click on any text box where you want the text to be typed (e.g., a text editor, a web browser form, a word processor).
+
+Press the F8 key. The script will begin typing the content from input.txt.
+
+Stop Typing:
+
+To stop the typing process at any time, press the ESC key.
+
+You can resume typing from the beginning by pressing F8 again.
+
+Terminate the Script: To completely stop the script, go back to the terminal window and press Ctrl + C.
+
+Important Notes
+Permissions: The script controls your keyboard, so your operating system might require you to grant permissions for it to work correctly.
+
+Focus: Make sure the cursor is in the correct window and text field before you press the start hotkey (F8). The script will type wherever the cursor is active.
