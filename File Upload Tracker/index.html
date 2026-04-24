@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DropStream — Fast File Upload</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ─── Variables ──────────────────────────────────────────────────── */
+:root{
+  --bg:       #09090f;
+  --surface:  #111118;
+  --card:     #16161f;
+  --border:   #2a2a3a;
+  --accent:   #5b6ef5;
+  --accent2:  #a78bfa;
+  --green:    #22d3a0;
+  --red:      #f56565;
+  --yellow:   #fbbf24;
+  --text:     #e8e8f0;
+  --muted:    #6b6b80;
+  --mono:     'JetBrains Mono', monospace;
+  --sans:     'Syne', sans-serif;
+}
+
+/* ─── Reset ──────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);overflow-x:hidden}
+
+/* ─── Background grid ────────────────────────────────────────────── */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(91,110,245,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(91,110,245,.04) 1px, transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none;z-index:0;
+}
+body::after{
+  content:'';position:fixed;top:-40%;left:-20%;width:60vw;height:60vw;
+  background:radial-gradient(circle, rgba(91,110,245,.12) 0%, transparent 60%);
+  pointer-events:none;z-index:0;
+}
+
+/* ─── Layout ─────────────────────────────────────────────────────── */
+.wrapper{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:48px 16px 80px}
+
+/* ─── Header ─────────────────────────────────────────────────────── */
+header{text-align:center;margin-bottom:48px}
+.logo{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:16px}
+.logo-icon{
+  width:44px;height:44px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:22px;box-shadow:0 0 32px rgba(91,110,245,.4);
+}
+.logo-text{font-size:28px;font-weight:800;letter-spacing:-.5px;
+  background:linear-gradient(90deg,#fff,var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.tagline{color:var(--muted);font-size:14px;font-family:var(--mono);letter-spacing:.5px}
+
+/* ─── Card ───────────────────────────────────────────────────────── */
+.card{
+  width:100%;max-width:680px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:20px;
+  overflow:hidden;
+  box-shadow:0 0 0 1px rgba(255,255,255,.03), 0 32px 64px rgba(0,0,0,.5);
+}
+.card-header{
+  padding:20px 24px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(255,255,255,.02);
+}
+.card-title{font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.status-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--muted);
+  box-shadow:0 0 8px currentColor;transition:.3s;
+}
+.status-dot.active{background:var(--green);animation:pulse 2s infinite}
+.status-dot.error{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ─── Drop Zone ──────────────────────────────────────────────────── */
+.card-body{padding:28px}
+
+.drop-zone{
+  border:2px dashed var(--border);border-radius:14px;
+  padding:52px 32px;text-align:center;cursor:pointer;
+  transition:all .2s;position:relative;overflow:hidden;
+}
+.drop-zone::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 50% 60%, rgba(91,110,245,.06) 0%, transparent 70%);
+  opacity:0;transition:.3s;
+}
+.drop-zone:hover,
+.drop-zone.drag-over{border-color:var(--accent);background:rgba(91,110,245,.04)}
+.drop-zone:hover::before,
+.drop-zone.drag-over::before{opacity:1}
+.drop-zone.drag-over{transform:scale(1.01)}
+
+.drop-icon{font-size:48px;margin-bottom:16px;display:block;opacity:.6}
+.drop-title{font-size:20px;font-weight:700;margin-bottom:8px}
+.drop-sub{font-size:13px;color:var(--muted);font-family:var(--mono)}
+.drop-sub span{color:var(--accent);cursor:pointer;text-decoration:underline}
+
+/* ─── File Info ──────────────────────────────────────────────────── */
+.file-info{
+  display:none;align-items:center;gap:14px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:14px 16px;margin-top:20px;
+}
+.file-info.show{display:flex}
+.file-icon{
+  width:40px;height:40px;border-radius:10px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;
+}
+.file-details{flex:1;min-width:0}
+.file-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-meta{font-size:12px;color:var(--muted);font-family:var(--mono);margin-top:3px}
+.file-clear{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px;border-radius:6px;transition:.2s}
+.file-clear:hover{color:var(--red);background:rgba(245,101,101,.1)}
+
+/* ─── Stats Row ──────────────────────────────────────────────────── */
+.stats{display:none;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.stats.show{display:grid}
+.stat-box{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:12px 14px;text-align:center;
+}
+.stat-val{font-size:18px;font-weight:700;font-family:var(--mono);color:var(--accent)}
+.stat-lbl{font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:.5px;text-transform:uppercase}
+
+/* ─── Progress ───────────────────────────────────────────────────── */
+.progress-wrap{display:none;margin-top:20px}
+.progress-wrap.show{display:block}
+.progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.progress-label{font-size:13px;font-weight:600}
+.progress-pct{font-size:22px;font-weight:800;font-family:var(--mono);
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.track{height:8px;background:var(--surface);border-radius:99px;overflow:hidden;border:1px solid var(--border)}
+.bar{
+  height:100%;width:0%;border-radius:99px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  transition:width .4s cubic-bezier(.4,0,.2,1);
+  position:relative;overflow:hidden;
+}
+.bar::after{
+  content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);
+  animation:shimmer 1.8s infinite;
+}
+@keyframes shimmer{to{left:200%}}
+.bar.done{background:linear-gradient(90deg,var(--green),#4ade80)}
+.bar.paused{background:linear-gradient(90deg,var(--yellow),#f97316);animation:none}
+.bar.paused::after{display:none}
+.chunk-track{margin-top:8px;display:flex;gap:2px;flex-wrap:wrap;max-height:40px;overflow:hidden}
+.chunk-dot{
+  width:6px;height:6px;border-radius:2px;background:var(--border);
+  transition:background .15s;flex-shrink:0;
+}
+.chunk-dot.done{background:var(--accent)}
+.chunk-dot.active{background:var(--accent2);animation:pulse .8s infinite}
+
+/* ─── Log ────────────────────────────────────────────────────────── */
+.log-wrap{display:none;margin-top:20px}
+.log-wrap.show{display:block}
+.log-header{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.log-box{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:10px 12px;height:100px;overflow-y:auto;
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+  scrollbar-width:thin;scrollbar-color:var(--border) transparent;
+}
+.log-box p{margin-bottom:2px}
+.log-box p.ok{color:var(--green)}
+.log-box p.err{color:var(--red)}
+.log-box p.warn{color:var(--yellow)}
+
+/* ─── Buttons ────────────────────────────────────────────────────── */
+.btn-row{display:flex;gap:10px;margin-top:24px}
+.btn{
+  flex:1;padding:14px 20px;border-radius:12px;font-size:15px;font-weight:700;
+  font-family:var(--sans);border:none;cursor:pointer;letter-spacing:.3px;
+  transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+.btn-primary{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;box-shadow:0 0 24px rgba(91,110,245,.35);
+}
+.btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 0 36px rgba(91,110,245,.5)}
+.btn-primary:active:not(:disabled){transform:none}
+.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:rgba(245,101,101,.1);color:var(--red);border:1px solid rgba(245,101,101,.3)}
+.btn-danger:hover:not(:disabled){background:rgba(245,101,101,.2)}
+
+/* ─── Toast ──────────────────────────────────────────────────────── */
+.toast{
+  position:fixed;bottom:32px;right:32px;z-index:999;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:14px 20px;
+  font-size:14px;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,.4);
+  transform:translateY(20px);opacity:0;transition:all .3s;
+  max-width:320px;display:flex;align-items:center;gap:10px;
+}
+.toast.show{transform:none;opacity:1}
+.toast.success{border-color:var(--green);color:var(--green)}
+.toast.error{border-color:var(--red);color:var(--red)}
+.toast.info{border-color:var(--accent);color:var(--accent)}
+
+/* ─── Refresh Warning Banner ─────────────────────────────────────── */
+.refresh-banner{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:888;
+  background:rgba(251,191,36,.12);border-bottom:1px solid rgba(251,191,36,.3);
+  padding:10px 20px;text-align:center;font-size:13px;font-weight:600;
+  color:var(--yellow);font-family:var(--mono);
+  backdrop-filter:blur(10px);
+}
+.refresh-banner.show{display:block}
+
+/* ─── Success Screen ─────────────────────────────────────────────── */
+.success-screen{
+  display:none;flex-direction:column;align-items:center;
+  padding:52px 32px;text-align:center;
+}
+.success-screen.show{display:flex}
+.success-circle{
+  width:80px;height:80px;border-radius:50%;
+  background:linear-gradient(135deg,var(--green),#4ade80);
+  display:flex;align-items:center;justify-content:center;
+  font-size:36px;margin-bottom:20px;
+  box-shadow:0 0 40px rgba(34,211,160,.4);
+  animation:popIn .5s cubic-bezier(.175,.885,.32,1.275);
+}
+@keyframes popIn{from{transform:scale(0)}to{transform:scale(1)}}
+.success-title{font-size:26px;font-weight:800;margin-bottom:8px}
+.success-meta{font-size:13px;color:var(--muted);font-family:var(--mono)}
+
+/* ─── Responsive ─────────────────────────────────────────────────── */
+@media(max-width:480px){
+  .stats{grid-template-columns:1fr 1fr}
+  .btn-row{flex-direction:column}
+  .card-body{padding:18px}
+}
+</style>
+</head>
+<body>
+
+<!-- Refresh Warning -->
+<div class="refresh-banner" id="refreshBanner">
+  ⚠️ Upload in progress — Do NOT refresh or close this tab. Your upload will be interrupted.
+</div>
+
+<div class="wrapper">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <span class="logo-text">DropStream</span>
+    </div>
+    <p class="tagline">// high-speed chunked file transfer //</p>
+  </header>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Upload Panel</span>
+      <div class="status-dot" id="statusDot"></div>
+    </div>
+
+    <!-- Main body — hidden when success screen shows -->
+    <div class="card-body" id="mainBody">
+
+      <!-- Drop Zone -->
+      <div class="drop-zone" id="dropZone">
+        <span class="drop-icon">📁</span>
+        <p class="drop-title">Drop your file here</p>
+        <p class="drop-sub">or <span onclick="document.getElementById('fileInput').click()">browse to upload</span></p>
+        <p class="drop-sub" style="margin-top:8px;font-size:11px">Supports any size · Video · Archives · Any format</p>
+      </div>
+      <input type="file" id="fileInput" style="display:none"/>
+
+      <!-- File info -->
+      <div class="file-info" id="fileInfo">
+        <div class="file-icon" id="fileIcon">📄</div>
+        <div class="file-details">
+          <div class="file-name" id="fileName">—</div>
+          <div class="file-meta" id="fileMeta">—</div>
+        </div>
+        <button class="file-clear" id="fileClear" title="Remove file">✕</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats" id="stats">
+        <div class="stat-box"><div class="stat-val" id="statSpeed">0 MB/s</div><div class="stat-lbl">Speed</div></div>
+        <div class="stat-box"><div class="stat-val" id="statETA">—</div><div class="stat-lbl">ETA</div></div>
+        <div class="stat-box"><div class="stat-val" id="statChunks">0/0</div><div class="stat-lbl">Chunks</div></div>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-header">
+          <span class="progress-label">Upload Progress</span>
+          <span class="progress-pct" id="progressPct">0%</span>
+        </div>
+        <div class="track"><div class="bar" id="bar"></div></div>
+        <div class="chunk-track" id="chunkTrack"></div>
+      </div>
+
+      <!-- Log -->
+      <div class="log-wrap" id="logWrap">
+        <div class="log-header">Activity Log</div>
+        <div class="log-box" id="logBox"></div>
+      </div>
+
+      <!-- Buttons -->
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnUpload" disabled>
+          <span>⬆</span> Start Upload
+        </button>
+        <button class="btn btn-secondary" id="btnPause" disabled>
+          <span id="pauseIcon">⏸</span> <span id="pauseLabel">Pause</span>
+        </button>
+        <button class="btn btn-danger" id="btnCancel" disabled>
+          ✕ Cancel
+        </button>
+      </div>
+
+    </div><!-- /main body -->
+
+    <!-- Success Screen -->
+    <div class="success-screen" id="successScreen">
+      <div class="success-circle">✓</div>
+      <h2 class="success-title">Upload Complete!</h2>
+      <p class="success-meta" id="successMeta">—</p>
+      <div class="btn-row" style="margin-top:28px;width:100%;max-width:320px">
+        <button class="btn btn-primary" onclick="resetAll()">⬆ Upload Another</button>
+      </div>
+    </div>
+
+  </div><!-- /card -->
+</div><!-- /wrapper -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   DropStream Upload Client
+   • Chunked multipart upload (5 MB chunks)
+   • Pause / Resume
+   • ETA & speed tracking
+   • Refresh lock during active upload
+   • Auto-retry on network error
+═══════════════════════════════════════════════════════════════════ */
+
+const CHUNK_SIZE    = 5 * 1024 * 1024;   // 5 MB — must match server default
+const MAX_PARALLEL  = 3;                  // concurrent chunk uploads
+const MAX_RETRIES   = 4;                  // retries per chunk
+const RETRY_DELAY   = 2000;              // ms between retries
+
+// ─── State ─────────────────────────────────────────────────────────
+let state = {
+  file:         null,
+  uploadId:     null,
+  totalChunks:  0,
+  sentChunks:   new Set(),
+  activeXHRs:   [],
+  paused:       false,
+  cancelled:    false,
+  uploading:    false,
+  startTime:    null,
+  bytesUploaded: 0,
+  queue:        [],    // chunk indices yet to send
+};
+
+// ─── DOM refs ───────────────────────────────────────────────────────
+const dropZone    = document.getElementById('dropZone');
+const fileInput   = document.getElementById('fileInput');
+const fileInfo    = document.getElementById('fileInfo');
+const fileName    = document.getElementById('fileName');
+const fileMeta    = document.getElementById('fileMeta');
+const fileIcon    = document.getElementById('fileIcon');
+const fileClear   = document.getElementById('fileClear');
+const stats       = document.getElementById('stats');
+const progressWrap= document.getElementById('progressWrap');
+const bar         = document.getElementById('bar');
+const progressPct = document.getElementById('progressPct');
+const chunkTrack  = document.getElementById('chunkTrack');
+const logBox      = document.getElementById('logBox');
+const logWrap     = document.getElementById('logWrap');
+const btnUpload   = document.getElementById('btnUpload');
+const btnPause    = document.getElementById('btnPause');
+const btnCancel   = document.getElementById('btnCancel');
+const statusDot   = document.getElementById('statusDot');
+const refreshBanner = document.getElementById('refreshBanner');
+const successScreen = document.getElementById('successScreen');
+const mainBody    = document.getElementById('mainBody');
+const statSpeed   = document.getElementById('statSpeed');
+const statETA     = document.getElementById('statETA');
+const statChunks  = document.getElementById('statChunks');
+const pauseIcon   = document.getElementById('pauseIcon');
+const pauseLabel  = document.getElementById('pauseLabel');
+const successMeta = document.getElementById('successMeta');
+const toast       = document.getElementById('toast');
+
+// ─── Prevent accidental refresh during upload ───────────────────────
+window.addEventListener('beforeunload', (e) => {
+  if (state.uploading) {
+    e.preventDefault();
+    e.returnValue = 'Your upload is still in progress. Are you sure you want to leave?';
+    return e.returnValue;
+  }
+});
+
+// ─── Drag & Drop ────────────────────────────────────────────────────
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) selectFile(f);
+});
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) selectFile(fileInput.files[0]); });
+fileClear.addEventListener('click', resetAll);
+
+// ─── Button handlers ────────────────────────────────────────────────
+btnUpload.addEventListener('click', startUpload);
+btnPause.addEventListener('click', togglePause);
+btnCancel.addEventListener('click', cancelUpload);
+
+// ─── File selection ──────────────────────────────────────────────────
+function selectFile(f) {
+  if (state.uploading) return;
+  state.file = f;
+  fileInfo.classList.add('show');
+  fileName.textContent = f.name;
+  fileMeta.textContent = `${fmtBytes(f.size)} · ${f.type || 'Unknown type'}`;
+  fileIcon.textContent = guessIcon(f.name);
+  btnUpload.disabled = false;
+  log(`📂 Selected: ${f.name} (${fmtBytes(f.size)})`);
+}
+
+function guessIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  if (['mp4','mkv','avi','mov','webm'].includes(ext)) return '🎬';
+  if (['zip','rar','7z','tar','gz'].includes(ext)) return '📦';
+  if (['jpg','jpeg','png','gif','webp'].includes(ext)) return '🖼';
+  if (['pdf'].includes(ext)) return '📕';
+  if (['mp3','wav','flac','aac'].includes(ext)) return '🎵';
+  return '📄';
+}
+
+// ─── Initialize upload session ───────────────────────────────────────
+async function startUpload() {
+  if (!state.file || state.uploading) return;
+
+  const f = state.file;
+  const totalChunks = Math.ceil(f.size / CHUNK_SIZE);
+
+  log(`🚀 Initiating upload — ${totalChunks} chunks of ${fmtBytes(CHUNK_SIZE)}`);
+
+  // Init session on server
+  const fd = new FormData();
+  fd.append('filename', f.name);
+  fd.append('total_size', f.size);
+  fd.append('total_chunks', totalChunks);
+  fd.append('mime_type', f.type || 'application/octet-stream');
+
+  let initResp;
+  try {
+    const r = await fetch('/upload/init', { method: 'POST', body: fd });
+    if (!r.ok) throw new Error(`Server error: ${r.status}`);
+    initResp = await r.json();
+  } catch (err) {
+    showToast('❌ Could not connect to server', 'error');
+    log(`❌ Init failed: ${err.message}`, 'err');
+    return;
+  }
+
+  state.uploadId    = initResp.upload_id;
+  state.totalChunks = totalChunks;
+  state.sentChunks  = new Set();
+  state.paused      = false;
+  state.cancelled   = false;
+  state.uploading   = true;
+  state.startTime   = Date.now();
+  state.bytesUploaded = 0;
+  state.queue       = Array.from({ length: totalChunks }, (_, i) => i);
+
+  // UI
+  btnUpload.disabled  = true;
+  btnPause.disabled   = false;
+  btnCancel.disabled  = false;
+  fileClear.disabled  = true;
+  dropZone.style.pointerEvents = 'none';
+  dropZone.style.opacity = '.4';
+  statusDot.className = 'status-dot active';
+  refreshBanner.classList.add('show');
+  stats.classList.add('show');
+  progressWrap.classList.add('show');
+  logWrap.classList.add('show');
+
+  buildChunkTrack(totalChunks);
+  log(`✅ Session ${state.uploadId.slice(0,8)}… created`, 'ok');
+
+  await runUpload();
+}
+
+// ─── Core upload loop ─────────────────────────────────────────────────
+async function runUpload() {
+  const f = state.file;
+
+  // Upload chunks with controlled parallelism
+  const workers = Array.from({ length: MAX_PARALLEL }, () => chunkWorker(f));
+  await Promise.all(workers);
+
+  if (state.cancelled) return;
+  if (state.sentChunks.size < state.totalChunks) {
+    // Some chunks failed permanently — stop
+    log('⛔ Upload aborted — some chunks could not be sent.', 'err');
+    state.uploading = false;
+    statusDot.className = 'status-dot error';
+    return;
+  }
+
+  // Finalize
+  log('🔧 Assembling file on server…', 'warn');
+  try {
+    const r   = await fetch(`/upload/complete/${state.uploadId}`, { method: 'POST' });
+    const res = await r.json();
+    if (!r.ok) throw new Error(res.detail || 'Merge failed');
+
+    const elapsed = ((Date.now() - state.startTime) / 1000).toFixed(1);
+    const avgSpeed = fmtBytes(f.size / parseFloat(elapsed)) + '/s';
+
+    log(`🎉 Done! ${res.filename} (${res.size_mb} MB) in ${elapsed}s`, 'ok');
+    state.uploading = false;
+    refreshBanner.classList.remove('show');
+    showSuccess(res.filename, res.size_mb, elapsed, avgSpeed);
+  } catch (err) {
+    log(`❌ Finalize error: ${err.message}`, 'err');
+    showToast('Upload failed during merge', 'error');
+    state.uploading = false;
+    statusDot.className = 'status-dot error';
+  }
+}
+
+// ─── Worker: pulls from queue and uploads ─────────────────────────────
+async function chunkWorker(file) {
+  while (state.queue.length > 0 && !state.cancelled) {
+    // Pause gate
+    while (state.paused && !state.cancelled) {
+      await sleep(300);
+    }
+    if (state.cancelled) return;
+
+    const idx = state.queue.shift();
+    if (idx === undefined) return;
+    if (state.sentChunks.has(idx)) continue; // already done (duplicate)
+
+    const success = await uploadChunkWithRetry(file, idx);
+    if (!success && !state.cancelled) {
+      // Re-queue for others to retry — or give up
+      log(`⛔ Chunk ${idx} failed permanently`, 'err');
+    }
+  }
+}
+
+// ─── Upload one chunk with retry ──────────────────────────────────────
+async function uploadChunkWithRetry(file, idx) {
+  const start  = idx * CHUNK_SIZE;
+  const end    = Math.min(start + CHUNK_SIZE, file.size);
+  const blob   = file.slice(start, end);
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (state.cancelled) return false;
+    while (state.paused && !state.cancelled) await sleep(300);
+    if (state.cancelled) return false;
+
+    try {
+      const r = await fetch(`/upload/chunk/${state.uploadId}/${idx}`, {
+        method: 'POST',
+        body: blob,
+        headers: { 'Content-Type': 'application/octet-stream' },
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+
+      // Mark done
+      state.sentChunks.add(idx);
+      state.bytesUploaded += blob.size;
+      updateProgress(idx);
+      return true;
+    } catch (err) {
+      if (attempt < MAX_RETRIES) {
+        log(`⚠ Chunk ${idx} retry ${attempt+1}/${MAX_RETRIES}: ${err.message}`, 'warn');
+        await sleep(RETRY_DELAY * (attempt + 1));
+      }
+    }
+  }
+  return false;
+}
+
+// ─── Progress UI update ───────────────────────────────────────────────
+function updateProgress(chunkIdx) {
+  const done  = state.sentChunks.size;
+  const total = state.totalChunks;
+  const pct   = Math.round((done / total) * 100);
+
+  bar.style.width = pct + '%';
+  progressPct.textContent = pct + '%';
+
+  // Mark chunk dot
+  const dot = document.getElementById(`cd-${chunkIdx}`);
+  if (dot) { dot.classList.remove('active'); dot.classList.add('done'); }
+
+  // Speed + ETA
+  const elapsed  = (Date.now() - state.startTime) / 1000;
+  const speed    = state.bytesUploaded / elapsed;
+  const remaining = state.file.size - state.bytesUploaded;
+  const eta      = speed > 0 ? remaining / speed : 0;
+
+  statSpeed.textContent  = fmtBytes(speed) + '/s';
+  statETA.textContent    = fmtTime(eta);
+  statChunks.textContent = `${done}/${total}`;
+}
+
+// ─── Build mini chunk visualizer ──────────────────────────────────────
+function buildChunkTrack(n) {
+  chunkTrack.innerHTML = '';
+  // Limit to 200 dots max for perf
+  const limit = Math.min(n, 200);
+  const step  = Math.floor(n / limit) || 1;
+  for (let i = 0; i < n; i += step) {
+    const d = document.createElement('div');
+    d.className = 'chunk-dot';
+    d.id = `cd-${i}`;
+    chunkTrack.appendChild(d);
+  }
+}
+
+// ─── Pause / Resume ───────────────────────────────────────────────────
+function togglePause() {
+  if (!state.uploading) return;
+  state.paused = !state.paused;
+
+  if (state.paused) {
+    pauseIcon.textContent  = '▶';
+    pauseLabel.textContent = 'Resume';
+    bar.classList.add('paused');
+    statusDot.className    = 'status-dot';
+    log('⏸ Paused — click Resume to continue.', 'warn');
+    showToast('Upload paused', 'info');
+  } else {
+    pauseIcon.textContent  = '⏸';
+    pauseLabel.textContent = 'Pause';
+    bar.classList.remove('paused');
+    statusDot.className    = 'status-dot active';
+    log('▶ Resumed!', 'ok');
+    showToast('Upload resumed', 'info');
+  }
+}
+
+// ─── Cancel ───────────────────────────────────────────────────────────
+async function cancelUpload() {
+  if (!confirm('Cancel this upload? Progress will be lost.')) return;
+  state.cancelled = true;
+  state.paused    = false;
+  state.uploading = false;
+
+  if (state.uploadId) {
+    fetch(`/upload/cancel/${state.uploadId}`, { method: 'DELETE' }).catch(() => {});
+  }
+  log('❌ Upload cancelled.', 'err');
+  refreshBanner.classList.remove('show');
+  statusDot.className = 'status-dot error';
+  btnUpload.disabled  = false;
+  btnPause.disabled   = true;
+  btnCancel.disabled  = true;
+  fileClear.disabled  = false;
+}
+
+// ─── Success screen ───────────────────────────────────────────────────
+function showSuccess(name, sizeMB, elapsed, speed) {
+  bar.style.width = '100%';
+  bar.classList.remove('paused');
+  bar.classList.add('done');
+  progressPct.textContent = '100%';
+  statusDot.className = 'status-dot';
+
+  setTimeout(() => {
+    mainBody.style.display    = 'none';
+    successScreen.classList.add('show');
+    successMeta.textContent = `${name} · ${sizeMB} MB · ${elapsed}s · avg ${speed}`;
+    showToast('✅ Upload complete!', 'success');
+  }, 600);
+}
+
+// ─── Reset ────────────────────────────────────────────────────────────
+function resetAll() {
+  if (state.uploading && !confirm('Cancel current upload?')) return;
+  state = { file:null,uploadId:null,totalChunks:0,sentChunks:new Set(),
+            activeXHRs:[],paused:false,cancelled:true,uploading:false,
+            startTime:null,bytesUploaded:0,queue:[] };
+
+  fileInfo.classList.remove('show');
+  stats.classList.remove('show');
+  progressWrap.classList.remove('show');
+  logWrap.classList.remove('show');
+  successScreen.classList.remove('show');
+  mainBody.style.display = '';
+  bar.style.width = '0%';
+  bar.className = 'bar';
+  progressPct.textContent = '0%';
+  logBox.innerHTML = '';
+  chunkTrack.innerHTML = '';
+  fileInput.value = '';
+  btnUpload.disabled  = true;
+  btnPause.disabled   = true;
+  btnCancel.disabled  = true;
+  dropZone.style.pointerEvents = '';
+  dropZone.style.opacity = '';
+  statusDot.className = 'status-dot';
+  refreshBanner.classList.remove('show');
+  pauseIcon.textContent = '⏸';
+  pauseLabel.textContent = 'Pause';
+  statSpeed.textContent = '0 MB/s';
+  statETA.textContent = '—';
+  statChunks.textContent = '0/0';
+  fileClear.disabled = false;
+}
+
+// ─── Logging ──────────────────────────────────────────────────────────
+function log(msg, cls = '') {
+  const p = document.createElement('p');
+  const ts = new Date().toLocaleTimeString();
+  p.textContent = `[${ts}] ${msg}`;
+  if (cls) p.className = cls;
+  logBox.appendChild(p);
+  logBox.scrollTop = logBox.scrollHeight;
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type = 'info') {
+  clearTimeout(toastTimer);
+  toast.textContent = msg;
+  toast.className = `toast ${type} show`;
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────
+function fmtBytes(b) {
+  if (b >= 1e9) return (b/1e9).toFixed(2) + ' GB';
+  if (b >= 1e6) return (b/1e6).toFixed(1) + ' MB';
+  if (b >= 1e3) return (b/1e3).toFixed(0) + ' KB';
+  return b + ' B';
+}
+function fmtTime(s) {
+  if (!isFinite(s) || s <= 0) return '—';
+  if (s >= 3600) return `${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m`;
+  if (s >= 60)   return `${Math.floor(s/60)}m ${Math.floor(s%60)}s`;
+  return `${Math.round(s)}s`;
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
