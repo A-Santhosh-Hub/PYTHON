@@ -222,7 +222,7 @@ This project is licensed under the MIT License.
 
 Founder — **SanStudio**
 
-GitHub: https://github.com/YOUR_USERNAME
+GitHub: https://github.com/A-Santhosh-Hub
 
 ---
 
