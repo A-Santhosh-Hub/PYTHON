@@ -1,0 +1,42 @@
+SanStudio AI Image Generator
+Welcome to the SanStudio AI Image Generator, a powerful, ComfyUI-style Stable Diffusion environment optimized entirely for Google Colab.
+
+Overview
+This application provides a highly interactive and intuitive widget-based interface right inside your Colab notebook. It streamlines the AI image generation process, allowing you to create stunning artwork with advanced controls, diverse model selections, and built-in post-processing—all without the need for a complex local hardware setup.
+
+Key Features
+Interactive UI: A clean, integrated interface providing ComfyUI-style controls natively within Google Colab.
+
+Multiple Generation Modes: Seamlessly switch between Text-to-Image (txt2img), Image-to-Image (img2img), and Inpainting.
+
+Curated Model Hub: Access top-tier optimized models catering to various artistic needs, including:
+
+Photorealism & Ultra-Real aesthetics
+
+Anime & Manga styling
+
+Cinematic & Digital Art concepts
+
+One-Click Style Presets: Instantly apply complex prompt modifiers for specific aesthetics (e.g., Cyberpunk, Studio Portrait, Watercolor, 3D Render).
+
+Advanced Image Control: Fine-tune your output using flexible Aspect Ratios, CFG scales, Step counts, and CLIP skip adjustments.
+
+Integrated Post-Processing: Enhance your finalized images directly in the tool with built-in upscaling, sharpening, and color grading (brightness, contrast, saturation).
+
+Batching & Output: Generate multiple images simultaneously with automatic grid creation and optional SanStudio watermarking.
+
+Usage Guide
+To use the generator in your Colab environment, follow these straightforward steps:
+
+Initialize the Environment: Run the first cell in your notebook to securely load all necessary external dependencies and libraries.
+
+Restart Runtime: Once the initial setup is complete, restart your Colab runtime to ensure all components are properly loaded into memory.
+
+Launch the Application: Run the main application cell. The SanStudio graphical interface will automatically appear below the cell.
+
+Create: Enter your creative prompts, define your negative prompts, select your preferred model and sampler, and click the Generate button to produce your images.
+
+Project Information
+Developed by: SanStudio
+
+Portfolio & Connect: SanStudio Official Website
