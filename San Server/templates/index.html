@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ root_name }} — SanShare</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">◈</span>
+    <span class="brand-name">SanShare</span>
+  </div>
+  <div class="status">
+    <span class="pulse-dot" aria-hidden="true"></span>
+    <span class="status-text">sharing <span class="mono">{{ root_name }}</span></span>
+  </div>
+  {% if has_password %}
+  <a class="logout-link" href="{{ url_for('logout') }}">Log out</a>
+  {% endif %}
+</header>
+
+<main class="wrap">
+
+  <div class="path-row">
+    <nav class="crumbs mono" aria-label="Folder path">
+      <a href="{{ url_for('browse') }}" class="crumb{% if is_root %} crumb-current{% endif %}">~</a>
+      {% for c in crumbs %}
+        <span class="crumb-sep">/</span>
+        <a href="{{ url_for('browse', subpath=c.rel_path) }}"
+           class="crumb{% if loop.last %} crumb-current{% endif %}">{{ c.name }}</a>
+      {% endfor %}
+    </nav>
+    <input type="search" id="filterBox" class="filter-box" placeholder="Filter this folder…" autocomplete="off">
+  </div>
+
+  {% if not folders and not files %}
+  <div class="empty-state">
+    <p class="empty-title">Nothing here</p>
+    <p class="empty-sub">This folder is empty.</p>
+  </div>
+  {% else %}
+
+  <form id="selectForm" action="{{ url_for('download_zip') }}" method="get">
+    <div class="listhead">
+      <label class="check-wrap">
+        <input type="checkbox" id="selectAll" aria-label="Select all">
+      </label>
+      <span class="col-name">Name</span>
+      <span class="col-size">Size</span>
+    </div>
+
+    <ul class="filelist">
+      {% for f in folders %}
+      <li class="row row-folder" data-name="{{ f.name|lower }}">
+        <label class="check-wrap">
+          <input type="checkbox" name="paths" value="{{ f.rel_path }}" class="item-check" data-kind="folder">
+        </label>
+        <a class="row-name" href="{{ url_for('browse', subpath=f.rel_path) }}">
+          <span class="icon icon-folder" aria-hidden="true"></span>
+          <span class="name-text">{{ f.name }}</span>
+        </a>
+        <span class="row-size mono">{{ f.child_count }} item{{ 's' if f.child_count != 1 else '' }}</span>
+      </li>
+      {% endfor %}
+
+      {% for f in files %}
+      <li class="row row-file" data-name="{{ f.name|lower }}">
+        <label class="check-wrap">
+          <input type="checkbox" name="paths" value="{{ f.rel_path }}" class="item-check" data-kind="file" data-size="{{ f.size }}">
+        </label>
+        <a class="row-name" href="{{ url_for('download_file', filepath=f.rel_path) }}">
+          <span class="icon icon-file" aria-hidden="true"></span>
+          <span class="name-text">{{ f.name }}</span>
+        </a>
+        <span class="row-size mono">{{ f.size_h }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </form>
+
+  {% endif %}
+</main>
+
+<div class="actionbar" id="actionBar" hidden>
+  <span class="actionbar-count"><strong id="selCount">0</strong> selected <span class="mono" id="selSize"></span></span>
+  <button type="submit" form="selectForm" class="btn-download">Download as ZIP</button>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

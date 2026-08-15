@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SanShare — locked</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="login-body">
+  <main class="login-card">
+    <div class="brand brand-center">
+      <span class="brand-mark">◈</span>
+      <span class="brand-name">SanShare</span>
+    </div>
+    <p class="login-sub">This share is locked. Ask whoever's sharing it for the password.</p>
+    <form method="post" class="login-form">
+      <input type="password" name="password" placeholder="Password" autofocus autocomplete="current-password">
+      <button type="submit" class="btn-download">Unlock</button>
+    </form>
+    {% if error %}<p class="login-error">{{ error }}</p>{% endif %}
+  </main>
+</body>
+</html>
