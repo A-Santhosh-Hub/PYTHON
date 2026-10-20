@@ -1,0 +1,22 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# local test output and scratch files
+*.png
+*.log
+*.tmp
+shots/
+out/
+
+# editor / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+
+# large reference copy of scrcpy (not needed to run the app)
+vendor/reference/
